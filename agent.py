@@ -4,9 +4,6 @@ from planner import RoutePlanner
 from simulator import Simulator
 from pprint import PrettyPrinter
 
-Q={}
-alpha=0.50
-gamma=0.25
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world."""
 
@@ -16,6 +13,9 @@ class LearningAgent(Agent):
         self.planner = RoutePlanner(self.env, self)  # simple route planner to get next_waypoint
         # TODO: Initialize any additional variables here
         self.prev=None,None
+        self.alpha = 0.5
+        self.gamma = 0.25
+        self.Q = {}
 
     def policy(self,QQ):
         if len([i for i in QQ.values() if i==0])==4:
@@ -28,6 +28,7 @@ class LearningAgent(Agent):
         self.planner.route_to(destination)
         # TODO: Prepare for a new trip; reset any variables here, if required
         self.prev=None,None
+        self.Q = {}
 
     def update(self, t):
         # Gather inputs
@@ -37,18 +38,18 @@ class LearningAgent(Agent):
 
         # TODO: Update state
         self.state=(inputs['light'],inputs['oncoming'],inputs['left'],self.next_waypoint)
-        Q[self.state]=Q.get(self.state,{None:0.0,'left':0.0,'right':0.0,'forward':0.0})
+        self.Q[self.state]=self.Q.get(self.state,{None:0.0,'left':0.0,'right':0.0,'forward':0.0})
         
         # TODO: Select action according to your policy
-        action=self.policy(Q[self.state])
+        action=self.policy(self.Q[self.state])
         
         # Execute action and get reward
         reward = self.env.act(self, action)
 
         # TODO: Learn policy based on state, action, reward
-        Q[self.state][action]=(alpha*Q[self.state][action])+(alpha*reward) #First part of the Q-learning equation (updating Q with rewards)
-        if self.prev[0] in Q:
-            Q[self.prev[0]][self.prev[1]]+=(alpha*gamma*Q[self.state][action]) #Second part of the Q-learning equation (back-assignment of future rewards)
+        self.Q[self.state][action]=(self.alpha*self.Q[self.state][action])+(self.alpha*reward) #First part of the Q-learning equation (updating Q with rewards)
+        if self.prev[0] in self.Q:
+            self.Q[self.prev[0]][self.prev[1]]+=(self.alpha*self.gamma*self.Q[self.state][action]) #Second part of the Q-learning equation (back-assignment of future rewards)
         self.prev=self.state,action
                                                              
         print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
